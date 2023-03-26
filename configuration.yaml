@@ -1,0 +1,32 @@
+API-Check-Path: /check # HTTP Server will listen for this path to check if the IP is whitelisted, along with 'Server-Reponse-Header'. Can be anything you like, but Caddy MUST know about this path as well.
+API-Knock-Path: /knock # HTTP Server will listen for this path to let new clients in. Can be anything you like, but Caddy MUST know about this path as well.
+Allowed-Expiration: 24 # Expiration of whitelisted IPs, in hours
+Allowed-IPs: # List of allowed IPs. This is a list of tuple, which contains the IP address, as well as an expiration date (0 = permanent). This list will change over time, as the program saves the new IPs there.
+- expiration: 0
+  ip: 127.0.0.1
+Allowed-Subnets: # List of permanently allowed subnets. Could be used to whitelist your ISP, although this is insecure.
+- 192.168.31.0/24
+Configuration-Sync: 3600 # Delay between each configuration update on disk, in seconds.
+Notify: # Section for notifications configuration. You can send a notification whenever an event happens
+  Notify-HTTP-Form-Payload: # The contents of the HTTP Form being sent in the notification. This may be any keys and values
+    message: '{ip} {knock_status}'
+    priority: 3
+    title: Message from CaddyKnocker
+  Notify-HTTP-Method: POST # HTTP Method, either POST or GET
+  Notify-On-Knock-Close: true # Sends a notification when removing a known IP from the whitelist. true/false
+  Notify-On-Knock-Failure: true # Sends a notification for new IP trying to knock-in but fails to do so. true/false
+  Notify-On-Knock-Successful: true # Sends a notification for new IP knocking in successfully. true/false
+  Notify-URL: http://10.31.31.1/gotify/message?token=AT73MhEDS1CaLdq # Sets the HTTP Endpoint where to send the notifications to
+Server-Content-Type: text/html # HTTP Content-type being used by the server as response
+Server-Fowarded-IP-Header: X-Forwarded-For # HTTP Header used by the server AND Caddy to pass along the external IP of the client trying to connect.
+Server-Knock-Flood-Protection: true # Delays successive queries to the "API-Knock-Path" endpoint # HTTP Server will listen for this path to let new clients in. Can be anything you like, but Caddy MUST know about this path as well.
+Server-Knock-Flood-Protection-Duration: 60 # Delays successive queries to the "API-Knock-Path" endpoint # Checks for queries made in those last seconds (default: 60). This is used to detect if the server is going under a flood attack. # HTTP Server will listen for this path to let new clients in. Can be anything you like, but Caddy MUST know about this path as well.
+Server-Knock-Flood-Protection-Times: 2 # Delays successive queries to the "API-Knock-Path" endpoint # If this number is reached in the last (Server-Knock-Flood-Protection-Duration) seconds, the requests made to the "API-Knock-Path" endpoint is increasingly delayed # HTTP Server will listen for this path to let new clients in. Can be anything you like, but Caddy MUST know about this path as well.
+Server-Redirect-Failures-To: https://www.zombo.com # When unauthorized IPs are trying to connect to your endpoints, redirects the connection to this website.
+Server-Response-Header: X-Whitelist # HTTP Header used by the server to specify if the IP has been, or is, whitelisted. Returns True or False, depending if the IP is in the whitelist or not.
+Server-Reuses-TOTP: false # Permits the use of the same TOTP code more than once. This may be a security issue. Set to true or false.
+Server-Security-Header: Nonce # HTTP Header used by the client to send it's TOTP code
+ServerName: Microsoft-IIS/10.0 # 'Server' HTTP Header in the server response. Obviously we send a fake server signature to trick hackers ;)
+ServerPort: 8000 # Port on which the HTTP server listens on.
+TOTP-Last-Used-Code: '950016' # Last used TOTP Code, used by Server-Reuses-TOTP to check for double authentication
+TOTP-Secret: JBSWY3DPEHPK3PXP # TOTP Secret, used by the client with configuration['Security-Header'], to authenticate. You DEFINITELY want to change this. You can get a TOTP Secret, as well as test it, directly on https://totp.danhersam.com 
