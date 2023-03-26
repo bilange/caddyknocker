@@ -526,7 +526,6 @@ class KnockerHandler(BaseHTTPRequestHandler):
                     reply_delay = (recent_knocks - 3) * 2
                     log('Delaying reply by {0} secs, server has too many successive {1} requests, and flood protection is enabled'.format(reply_delay, configuration['API-Knock-Path']))
                     time.sleep(reply_delay)
-            return
 
             if requestedIP is None or requestedIP == '' or not valid_ip(requestedIP): 
                 # This may happen when the reverse proxy server does NOT pass the X-Fowarded-IP
