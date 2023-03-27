@@ -15,7 +15,8 @@ import pyotp      # pip: pyotp
 import requests   # pip: requests
 
 # TODO: 
-# - logging sur disque?
+# double checker que la protection agit bien sur mon cell
+# 
 
 # Debugging bash aliases: 
 # alias knock='myknock() { curl -i http://caddy-knocker:8000/knock -H "X-Forwarded-For: $1" -H "Nonce: $2" ; }; myknock'
@@ -569,14 +570,24 @@ class KnockerHandler(BaseHTTPRequestHandler):
                     self.refuse(requestedIP)
 
         ### CHECK entrypoint
-        elif self.path == configuration['API-Check-Path']: 
+        #elif self.path == configuration['API-Check-Path']: 
+        elif self.path.index(configuration['API-Check-Path']) == 0: 
+            # caddy will still pass the ?var=val&var2=val2 part in the URI.
+            # so we need only to match on the start of the string.
+
             #log('CHECK is hit')
             if requestedIP is not None and requestedIP != '' and ip_whitelisted(requestedIP): 
-                log('CHECK: {0} is whitelisted.'.format(requestedIP))
+                # this is verbose
+                #log('CHECK: {0} is whitelisted.'.format(requestedIP))
+
+
                 self.accept(requestedIP)
             elif ip_whitelisted_by_network(requestedIP): 
                 # accept the connection if it comes from a whitelisted subnet
-                log('CHECK: {0} is part of a subnet'.format(requestedIP))
+
+                # this is verbose
+                #log('CHECK: {0} is part of a subnet'.format(requestedIP))
+
                 self.accept("subnet") 
             else: 
                 log('CHECK: {0} is NOT whitelisted.'.format(requestedIP))
