@@ -6,14 +6,20 @@ TLDR: This project brings the general idea of TCP [Port Knocking](https://en.wik
 
 ## Usage
 
-You can clone this directory and use the provided Dockerfile to create an isolated environment for this app to run from (recommended). If you intend to run it this way, go in the cloned directory and type:
+You can clone this directory (see warning) and use the provided Dockerfile to create an isolated environment for this app to run from (recommended). 
+
+> **WARNING**: by cloning the repository, filesystem permissions for the `configuration.yaml` file are reset to be readable for everybody. This is awfully bad, because this app stores your TOTP Secret in plain text in the configuration file. On Unix based OS, you may want to tighten up the security of this file by typing `chmod go-r configuration.yaml`. Upon startup, the app will complain about too permissive rights to this file (and outright exits immediately) as a reminder.
+
+To build a docker image from the cloned directory, type:
 
 ```
-docker build -t caddy-knocker .
-docker run -it --network caddy --name=caddy-knocker --rm caddy-knocker
+git clone https://github.com/bilange/caddyknocker.git
+cd caddyknocker
+docker build -t caddyknocker .
+docker run -d --network caddy --name=caddyknocker --rm caddyknocker
 ```
 
-The name of the container might be changed to your likings, but note that the example configuration described below points to `caddy-knocker` as being this app, so you may want to adjust your config if you change it. Also, this container needs to be on the same [docker network](https://docs.docker.com/network/) as your running Caddy instance, as Caddy talks to this app for every HTTP connection and for initial authentication.
+The name of the container might be changed to your likings, but note that the example configuration described below points to `caddyknocker` as being this app, so you may want to adjust your config if you change it. Also, this container needs to be on the same [docker network](https://docs.docker.com/network/) as your running Caddy instance, as Caddy talks to this app for every HTTP connection and for initial authentication.
 
 Note that the last line above only runs a "live" instance on terminal, interactively, and terminates on `Ctrl-C`. You may want to use docker compose to have a permanent setup, similar to:
 
@@ -26,18 +32,18 @@ networks:
     name: caddy
 
 services:
-  caddy-knocker:
-    container_name: caddy-knocker
+  caddyknocker:
+    container_name: caddyknocker
     restart: always
     build:
-      context: /path/to/cloned/caddy-knocker
-    image: caddy-knocker
+      context: /path/to/cloned/caddyknocker
+    image: caddyknocker
     networks:
       - caddy   # Must reside on the SAME network as caddy, for... obvious reasons???
     ports:
       - "80"
     volumes:
-      - /path/to/cloned/caddy-knocker/configuration.yaml:/app/configuration.yaml
+      - /path/to/cloned/caddyknocker/configuration.yaml:/app/configuration.yaml
   caddy: 
     # ...
 ```
@@ -60,7 +66,7 @@ Caddy must be configured this way for every service that you want to protect (fo
 ```
 https://bitwarden.example.com {
         route { 
-                forward_auth caddy-knocker:8000 {
+                forward_auth caddyknocker:8000 {
                         uri /check
                         copy_headers X-Forwarded-For
                 }
@@ -70,7 +76,7 @@ https://bitwarden.example.com {
 }
 ```
 
-Every time a connection is made to `bitwarden.example.com`, Caddy first initiates a connection to `http://caddy-knocker:8000/check`. The `caddy-knocker` host shown in this config above points to **this** Python app. This app will, for requests made on`/check`, either validates or deny access, depending on the IP.  This is done with the assistance of Caddy, who will act according to it's [docs about forward_auth](https://caddyserver.com/docs/caddyfile/directives/forward_auth):
+Every time a connection is made to `bitwarden.example.com`, Caddy first initiates a connection to `http://caddyknocker:8000/check`. The `caddyknocker` host shown in this config above points to **this** Python app. This app will, for requests made on`/check`, either validates or deny access, depending on the IP.  This is done with the assistance of Caddy, who will act according to it's [docs about forward_auth](https://caddyserver.com/docs/caddyfile/directives/forward_auth):
 
 * « *If the upstream responds with a 2xx status code, then access is granted (...) and handling continues* » , then Caddy will hit the next line in my example configuration above with the `reverse_proxy` directive, being the service you wanted to protect.
 * « *Otherwise, if the upstream responds with any other status code, then the upstream's response is copied back to the client. This response should typically involve a redirect to login page of the authentication gateway.* ». In the case of this app, it is configured to answer with a [HTTP 301 Moved Permanently](https://en.wikipedia.org/wiki/HTTP_301), with a random external URL of your choosings. The idea here is to forward away the refused incoming connection.
@@ -86,7 +92,7 @@ When you want to access your services, you have basically two ways to do so:
 https://www.example.com {
         handle /api/0/getInfo { # can be long and arbitrary
                 rewrite * /knock   # tells Caddy to always redirect the path to /knock (configurable in-app), regardless of the path in 'handle' above
-                reverse_proxy http://caddy-knocker:8000
+                reverse_proxy http://caddyknocker:8000
         }
 
         # other regular Caddy directives goes here for regular access to this host
@@ -115,7 +121,7 @@ Assuming you want to unlock your services when you're out (say, at work or at so
   * Create a variable that will hold your TOTP code. Variables are set up in the hamburger menu "..." in the top right corner of the app main screen and select "Variables". Only set a variable name, say `totp` (this will be referenced later), and no value (leave it blank), it will be modified later.
   * Create a new "Regular HTTP shortcut" using the "+" button in the lower right. The settings for this "Regular HTTP shortcut" are all of the following:
     * "Scripting" section: Run before execution: `setVariable('totp',getClipboardContent())`, where `totp` is the same name as you set above in the Variables section.
-    * "Basic Request Settings" section:: Method: `GET` . URL: it should be the full URL that points to the Caddy config where you expose `http://caddy-knocker:8000/knock`. As the example above: `https://www.example.com/api/0/getInfo`
+    * "Basic Request Settings" section:: Method: `GET` . URL: it should be the full URL that points to the Caddy config where you expose `http://caddyknocker:8000/knock`. As the example above: `https://www.example.com/api/0/getInfo`
     * "Request Headers" section: create one single header configured like this:
       * The Header name MUST match the configuration of CaddyKnocker with it's `Server-Security-Header` variable. (By default, it is set to be named `Nonce`)
       * The value must be set as `{totp}` with the curly braces, `totp` refers to the name of the Variable we set up in the section Variables above.
