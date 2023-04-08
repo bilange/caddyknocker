@@ -1,8 +1,10 @@
 # CaddyKnocker
 
-This project is a proof-of-concept reimplementation of this [blog post](https://bilange.ca/pages/2022-05-12-privately-publish-selfhosted-services.html) in a standalone Python webapp, using [Caddy](https://caddyserver.com/)'s [forward_auth](https://caddyserver.com/docs/caddyfile/directives/forward_auth) directive to check whether an inbound HTTP connexion is permitted to go through and reach the web service or not. The target audience is people who self-host and uses Caddy as a reverse-proxy, for use on a small scale with a handful of people to authenticate (think: one person or a couple, max).
+This project is a reimplementation of the system described in this [blog post](https://bilange.ca/pages/2022-05-12-privately-publish-selfhosted-services.html) in a standalone Python webapp, using [Caddy](https://caddyserver.com/)'s [forward_auth](https://caddyserver.com/docs/caddyfile/directives/forward_auth) directive to check whether an inbound HTTP connexion is permitted to go through and reach the web service or not. For the sake of this project, the term *knocker* is borrowed from the term *TCP [Port Knocking](https://en.wikipedia.org/wiki/Port_knocking)*, where a user can hit a specific HTTP URL to allow himself access to protected websites. CaddyKnocker doesn't mean that we intend to bring down Caddy instances 😃
 
-TLDR: This project brings the general idea of TCP [Port Knocking](https://en.wikipedia.org/wiki/Port_knocking) to Caddy-backed hostnames, hence the name. This app will initially deny access to protected `Caddyfile` config blocks, until a user enters from a configurable URL with a TOTP token to "whitelist" his current external IP address. CaddyKnocker lets connexions through via allowed whitelisted IPs or subnets.
+The target audience is people who self-host and uses Caddy as a reverse-proxy, for use on a small scale with a handful of people to authenticate (think: one person or a couple, max).
+
+TLDR: This app will initially deny access to protected `Caddyfile` config blocks, until a user enters from a configurable URL with a TOTP token to "whitelist" his current external IP address. CaddyKnocker lets connexions through via allowed whitelisted IPs or subnets.
 
 ## Usage
 
