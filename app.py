@@ -15,8 +15,9 @@ import pyotp      # pip: pyotp
 import requests   # pip: requests
 
 # TODO: 
-# double checker que la protection agit bien sur mon cell
-# 
+# - environment variable pour TOTP-Secret
+# - gérer les secrets multiples
+# - faire un docker image sur github
 
 # Debugging bash aliases: 
 # alias knock='myknock() { curl -i http://caddy-knocker:8000/knock -H "X-Forwarded-For: $1" -H "Nonce: $2" ; }; myknock'
@@ -566,34 +567,27 @@ class KnockerHandler(BaseHTTPRequestHandler):
                     return
 
                 if totp.verify(self.headers[configuration['Server-Security-Header']]): 
-                    #log('Accepting {0}: NEW whitelist entry with correct TOTP Code'.format(requestedIP))
                     notify_success(requestedIP, 'is a new IP with correct TOTP token.')
                     configuration['TOTP-Last-Used-Code'] = self.headers[configuration['Server-Security-Header']]
                     self.accept(requestedIP)
                 else: 
-                    #log('Refusing {0}: invalid TOTP Code'.format(requestedIP))
                     notify_failure(requestedIP, 'used an invalid TOTP token.')
                     self.refuse(requestedIP)
 
         ### CHECK entrypoint
-        #elif self.path == configuration['API-Check-Path']: 
         elif self.path.index(configuration['API-Check-Path']) == 0: 
             # caddy will still pass the ?var=val&var2=val2 part in the URI.
             # so we need only to match on the start of the string.
 
             #log('CHECK is hit')
             if requestedIP is not None and requestedIP != '' and ip_whitelisted(requestedIP): 
-                # this is verbose
                 #log('CHECK: {0} is whitelisted.'.format(requestedIP))
-
-
                 self.accept(requestedIP)
+
             elif ip_whitelisted_by_network(requestedIP): 
                 # accept the connection if it comes from a whitelisted subnet
 
-                # this is verbose
                 #log('CHECK: {0} is part of a subnet'.format(requestedIP))
-
                 self.accept("subnet") 
             else: 
                 log('CHECK: {0} is NOT whitelisted.'.format(requestedIP))
